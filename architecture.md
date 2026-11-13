@@ -41,3 +41,40 @@
 - Stores the results of the computed matrix for each block (`.npy` files)
 - The coordinator reads and gets data from here
 - Workers store data here and also read from it
+
+## Data Flow (Example: 2×2 Grid of Blocks)
+
+A and B are each split into a 2×2 grid of blocks, so C has 4 blocks to compute.
+
+```
+1. Coordinator splits A and B into blocks
+   A → A_0_0  A_0_1  A_1_0  A_1_1
+   B → B_0_0  B_0_1  B_1_0  B_1_1
+
+2. Coordinator ──saves blocks──▶ Volume
+   /data/A_0_0.npy ... /data/B_1_1.npy
+
+3. Coordinator ──adds tasks──▶ Redis (tasks)
+   (0,0)  (0,1)  (1,0)  (1,1)          one task per block of C
+
+4. Redis (tasks) ──one task each──▶ Workers
+   Worker 1 ← (0,0)   Worker 2 ← (0,1)   Worker 3 ← (1,0)   Worker 4 ← (1,1)
+
+5. Volume ──input blocks──▶ Worker   (e.g. Worker 2, task (0,1))
+   loads A_0_0, B_0_1, A_0_1, B_1_1
+   computes C_0_1 = A_0_0 · B_0_1 + A_0_1 · B_1_1
+
+6. Worker ──saves result──▶ Volume
+   /data/C_0_1.npy
+
+7. Worker ──"(0,1) done"──▶ Redis (results)
+
+8. Redis (results) ──"(0,1) done"──▶ Coordinator
+   Volume ──C_0_1.npy──▶ Coordinator  (placed at row 0, column 1 of C)
+
+9. Once all 4 results are in, the Coordinator has the full matrix C
+```
+
+- **Redis** only carries small messages: which block to compute and which block is done
+- **Volume** carries the actual matrix data (`.npy` files)
+- Files are always saved to the Volume **before** the message is sent to Redis, so the file is ready when the message arrives
