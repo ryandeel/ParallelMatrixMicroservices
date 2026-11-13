@@ -13,13 +13,10 @@ newgrp docker
 docker swarm init --advertise-addr 10.0.2.15
 ```
 
-## Build and run
+## Build , run, stop
 ```sh
 docker compose build
 docker compose up
-```
-
-## Stop container
-```sh
 docker compose down
 ```
+
