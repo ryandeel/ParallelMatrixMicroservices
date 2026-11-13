@@ -1,6 +1,6 @@
 # Parallel Matrix Microservices
 
-## Setup (Debian VM)
+## Initial Setup (Debian VM)
 
 ### Run Docker without sudo
 ```sh
@@ -10,13 +10,19 @@ newgrp docker
 
 ### Start a single-node swarm
 ```sh
+-- This needs to be done in order to start builds -- 
 docker swarm init --advertise-addr 10.0.2.15
 ```
 
-## Build , run, stop
+## How to run a test 
 ```sh
+-- This  will build and Image -- 
 docker compose build
+
+-- This will start the containers -- 
 docker compose up
+
+-- This will turn off the containers --
 docker compose down
 ```
 
