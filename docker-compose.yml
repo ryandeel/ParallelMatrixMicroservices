@@ -1,0 +1,56 @@
+# Single-node block matrix multiplication
+# Run:   docker compose up --build
+# Stop:  docker compose down        (add -v to also delete the data volume)
+
+name: blockmatmul
+
+services:
+  redis:
+    image: redis:7-alpine               # multi-arch: works on x86 and Apple Silicon
+    command: ["redis-server", "--save", "", "--appendonly", "no"]   # no snapshots: queues start empty
+    healthcheck:                        # lets other services wait until Redis is ready
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  coordinator:
+    build: .                            # build from the Dockerfile on this machine
+    image: matmul:latest                # name the image; workers reuse it
+    command: ["python", "-u", "coordinator.py"]
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      WORKERS: "4"                      # keep in sync with worker replicas below
+      DATA_DIR: /data
+    volumes:
+      - data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    image: matmul:latest                # same image as coordinator, different command
+    command: ["python", "-u", "worker.py"]
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      DATA_DIR: /data
+      # one math thread per worker, so workers don't fight over cores
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    volumes:
+      - data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 4                       # keep in sync with WORKERS on coordinator (or use --scale worker=N)
+      resources:
+        limits:
+          cpus: "1"                     # each worker gets at most one core
+
+volumes:
+  data:                                 # named volume: same behavior on Windows, macOS and Linux
