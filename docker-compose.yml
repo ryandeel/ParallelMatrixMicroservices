@@ -1,7 +1,3 @@
-# Single-node block matrix multiplication
-# Run:   docker compose up --build
-# Stop:  docker compose down        (add -v to also delete the data volume)
-
 name: blockmatmul
 
 services:
