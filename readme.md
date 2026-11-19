@@ -9,7 +9,7 @@ newgrp docker
 **Start a single-node swarm**
 ```sh
 "-- Must do before doing Docker Compose Up --"
-docker swarm init --advertise-addr 10.0.2.15
+docker swarm init --advertise-addr [INSERT ROUTABLE NETWORK ADDRESS HERE], such as an en interface like enp0s3 and NOT lo
 ```
 
 # How to run a test 
